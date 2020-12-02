@@ -180,22 +180,28 @@ class Conditional_Contrastive_loss_plus(torch.nn.Module):
 
     def forward(self, inst_embed, proxy, negative_mask, labels, temperature, margin):
         p2i_similarity_matrix = self.calculate_similarity_matrix(proxy, inst_embed)
+        p2p_similarity_matrix = self.calculate_similarity_matrix(proxy, proxy)
         i2i_similarity_matrix = self.calculate_similarity_matrix(inst_embed, inst_embed)
         p2i_similarity_zone = torch.exp((p2i_similarity_matrix - margin)/temperature)
+        p2p_similarity_zone = torch.exp((p2p_similarity_matrix - margin)/temperature)
         i2i_similarity_zone = torch.exp((i2i_similarity_matrix - margin)/temperature)
 
         mask_4_remove_negatives = negative_mask[labels]
         p2i_positives = p2i_similarity_zone*mask_4_remove_negatives
+        p2p_positives = p2p_similarity_zone*mask_4_remove_negatives
         i2i_positives = i2i_similarity_zone*mask_4_remove_negatives
 
         p2i_numerator = p2i_positives.sum(dim=1)
+        p2p_numerator = p2p_positives.sum(dim=1)
         i2i_numerator = i2i_positives.sum(dim=1)
         p2i_denomerator = p2i_similarity_zone.sum(dim=1)
+        p2p_denomerator = p2p_similarity_zone.sum(dim=1)
         i2i_denomerator = i2i_similarity_zone.sum(dim=1)
 
         p2i_contra_loss = -torch.log(temperature*(p2i_numerator/p2i_denomerator)).mean()
+        p2p_contra_loss = -torch.log(temperature*(p2p_numerator/p2p_denomerator)).mean()
         i2i_contra_loss = -torch.log(temperature*(i2i_numerator/i2i_denomerator)).mean()
-        return p2i_contra_loss + i2i_contra_loss
+        return p2i_contra_loss + p2p_contra_loss + i2i_contra_loss
 
 
 class Proxy_NCA_loss(torch.nn.Module):
