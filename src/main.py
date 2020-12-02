@@ -81,8 +81,8 @@ def main():
     else:
         raise NotImplementedError
 
-    if model_config['data_processing']['dataset_name'] == 'cifar10':
-        assert train_config['eval_type'] in ['train', 'test'], "Cifar10 does not contain dataset for validation."
+    if model_config['data_processing']['dataset_name'] in ['cifar10', 'cifar100']:
+        assert train_config['eval_type'] in ['train', 'test'], "cifar10/100 does not contain dataset for validation."
     elif model_config['data_processing']['dataset_name'] in ['imagenet', 'tiny_imagenet', 'custom']:
         assert train_config['eval_type'] == 'train' or train_config['eval_type'] == 'valid', \
             "StudioGAN dose not support the evalutation protocol that uses the test dataset on imagenet, tiny imagenet, and custom datasets"

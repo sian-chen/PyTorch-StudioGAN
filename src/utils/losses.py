@@ -75,7 +75,7 @@ def latent_optimise(zs, fake_labels, gen_model, dis_model, conditional_strategy,
 
 
 def set_temperature(conditional_strategy, tempering_type, start_temperature, end_temperature, step_count, tempering_step, total_step):
-    if conditional_strategy == 'ContraGAN':
+    if conditional_strategy in ['ContraGAN', "ContraGAN_plus"]:
         if tempering_type == 'continuous':
             t = start_temperature + step_count*(end_temperature - start_temperature)/total_step
         elif tempering_type == 'discrete':
@@ -152,11 +152,10 @@ class Conditional_Contrastive_loss(torch.nn.Module):
 
 
 class Conditional_Contrastive_loss_plus(torch.nn.Module):
-    def __init__(self, device, batch_size, pos_collected_numerator):
+    def __init__(self, device, batch_size):
         super(Conditional_Contrastive_loss_plus, self).__init__()
         self.device = device
         self.batch_size = batch_size
-        self.pos_collected_numerator = pos_collected_numerator
         self.calculate_similarity_matrix = self._calculate_similarity_matrix()
         self.cosine_similarity = torch.nn.CosineSimilarity(dim=-1)
 
@@ -306,7 +305,7 @@ def calc_derv4gp(netD, conditional_strategy, real_data, fake_data, real_labels, 
     interpolates = interpolates.to(device)
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
-    if conditional_strategy in ['ContraGAN', "Proxy_NCA_GAN", "NT_Xent_GAN"]:
+    if conditional_strategy in ["ContraGAN", "ContraGAN_plus", "Proxy_NCA_GAN", "NT_Xent_GAN"]:
         _, _, disc_interpolates = netD(interpolates, real_labels)
     elif conditional_strategy in ['ProjGAN', 'no']:
             disc_interpolates = netD(interpolates, real_labels)
@@ -336,7 +335,7 @@ def calc_derv4dra(netD, conditional_strategy, real_data, real_labels, device):
     interpolates = interpolates.to(device)
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
-    if conditional_strategy in ['ContraGAN', "Proxy_NCA_GAN", "NT_Xent_GAN"]:
+    if conditional_strategy in ['ContraGAN', "ContraGAN_plus", "Proxy_NCA_GAN", "NT_Xent_GAN"]:
         _, _, disc_interpolates = netD(interpolates, real_labels)
     elif conditional_strategy in ['ProjGAN', 'no']:
             disc_interpolates = netD(interpolates, real_labels)
@@ -358,7 +357,7 @@ def calc_derv(inputs, labels, netD, conditional_strategy, device, netG=None):
     zs = autograd.Variable(inputs, requires_grad=True)
     fake_images = netG(zs, labels)
 
-    if conditional_strategy in ['ContraGAN', "Proxy_NCA_GAN", "NT_Xent_GAN"]:
+    if conditional_strategy in ['ContraGAN', "ContraGAN_plus", "Proxy_NCA_GAN", "NT_Xent_GAN"]:
         _, _, dis_out_fake = netD(fake_images, labels)
     elif conditional_strategy in ['ProjGAN', 'no']:
         dis_out_fake = netD(fake_images, labels)

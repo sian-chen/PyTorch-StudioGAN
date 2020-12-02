@@ -153,7 +153,7 @@ def check_flag_1(tempering_type, pos_collected_numerator, conditional_strategy, 
     assert int(gradient_penalty_for_dis)*int(deep_regret_analysis_for_dis) == 0, \
         "You can't simultaneously apply Gradient Penalty (GP) and Deep Regret Analysis (DRA)."
 
-    if conditional_strategy == "ContraGAN":
+    if conditional_strategy in ["ContraGAN", "ContraGAN_plus"]:
         assert tempering_type == "constant" or tempering_type == "continuous" or tempering_type == "discrete", \
             "Tempering_type should be one of constant, continuous, or discrete."
 
@@ -163,7 +163,7 @@ def check_flag_1(tempering_type, pos_collected_numerator, conditional_strategy, 
     if distributed_data_parallel:
         msg = 'Evaluation results of the image generation with DDP are not exact. ' + \
             'Please use a single GPU training mode or DataParallel for exact evluation.'
-        warnings.warn(msg)
+        print(msg)
 
 
 # Convenience utility to switch off requires_grad

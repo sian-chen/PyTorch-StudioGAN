@@ -64,7 +64,7 @@ class Generator(nn.Module):
         self.z_dim = z_dim
         self.num_classes = num_classes
         self.mixed_precision = mixed_precision
-        conditional_bn = True if conditional_strategy in ["ACGAN", "ProjGAN", "ContraGAN", "Proxy_NCA_GAN", "NT_Xent_GAN"] else False
+        conditional_bn = True if conditional_strategy in ["ACGAN", "ProjGAN", "ContraGAN", "ContraGAN_plus", "Proxy_NCA_GAN", "NT_Xent_GAN"] else False
 
         if g_spectral_norm:
             self.linear0 = snlinear(in_features=self.z_dim, out_features=self.in_dims[0]*4*4)
@@ -247,6 +247,15 @@ class Discriminator(nn.Module):
                 cls_embed = self.linear2(h)
                 if self.nonlinear_embed:
                     cls_embed = self.linear3(self.activation(cls_embed))
+                if self.normalize_embed:
+                    cls_proxy = F.normalize(cls_proxy, dim=1)
+                    cls_embed = F.normalize(cls_embed, dim=1)
+                return cls_proxy, cls_embed, authen_output
+
+            elif self.conditional_strategy == 'ContraGAN_plus':
+                authen_output = torch.squeeze(self.linear1(h))
+                cls_proxy = self.embedding(label)
+                cls_embed = h
                 if self.normalize_embed:
                     cls_proxy = F.normalize(cls_proxy, dim=1)
                     cls_embed = F.normalize(cls_embed, dim=1)

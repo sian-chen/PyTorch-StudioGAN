@@ -15,7 +15,7 @@ from PIL import ImageOps, Image
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
-from torchvision.datasets import CIFAR10, STL10
+from torchvision.datasets import CIFAR10, CIFAR100, STL10
 from torchvision.datasets import ImageFolder
 
 
@@ -66,7 +66,7 @@ class LoadDataset(Dataset):
         self.norm_std = [0.5,0.5,0.5]
 
         if self.hdf5_path is None:
-            if self.dataset_name in ['cifar10', 'tiny_imagenet']:
+            if self.dataset_name in ['cifar10', 'cifar100', 'tiny_imagenet']:
                 self.transforms = []
             elif self.dataset_name in ['imagenet', 'custom']:
                 if train:
@@ -94,6 +94,17 @@ class LoadDataset(Dataset):
                     self.labels = f['labels'][:]
             else:
                 self.data = CIFAR10(root=os.path.join('data', self.dataset_name),
+                                    train=self.train,
+                                    download=self.download)
+
+        elif self.dataset_name == 'cifar100':
+            if self.hdf5_path is not None:
+                print('Loading %s into memory...' % self.hdf5_path)
+                with h5.File(self.hdf5_path, 'r') as f:
+                    self.data = f['imgs'][:]
+                    self.labels = f['labels'][:]
+            else:
+                self.data = CIFAR100(root=os.path.join('data', self.dataset_name),
                                     train=self.train,
                                     download=self.download)
 
