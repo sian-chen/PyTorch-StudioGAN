@@ -95,7 +95,7 @@ class Generator(nn.Module):
         self.shared_dim = shared_dim
         self.num_classes = num_classes
         self.mixed_precision = mixed_precision
-        conditional_bn = True if conditional_strategy in ["ACGAN", "ProjGAN", "ContraGAN", "ContraGAN_plus" "Proxy_NCA_GAN", "NT_Xent_GAN"] else False
+        conditional_bn = True if conditional_strategy in ["ACGAN", "ProjGAN", "ContraGAN", "ContraGAN_plus", "Proxy_NCA_GAN", "NT_Xent_GAN"] else False
 
         self.in_dims =  g_in_dims_collection[str(img_size)]
         self.out_dims = g_out_dims_collection[str(img_size)]
