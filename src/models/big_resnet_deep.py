@@ -313,13 +313,11 @@ class Discriminator(nn.Module):
 
         if d_spectral_norm:
             self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
-            if self.conditional_strategy in ['ContraGAN', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
+            if self.conditional_strategy in ['ContraGAN', 'ContraGAN_plus', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
                 self.linear2 = snlinear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
                 if self.nonlinear_embed:
                     self.linear3 = snlinear(in_features=hypersphere_dim, out_features=hypersphere_dim)
                 self.embedding = sn_embedding(num_classes, hypersphere_dim)
-            elif self.conditional_strategy == 'ContraGAN_plus':
-                self.embedding = sn_embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ProjGAN':
                 self.embedding = sn_embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':
@@ -328,13 +326,11 @@ class Discriminator(nn.Module):
                 pass
         else:
             self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
-            if self.conditional_strategy in ['ContraGAN', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
+            if self.conditional_strategy in ['ContraGAN', 'ContraGAN_plus', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
                 self.linear2 = linear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
                 if self.nonlinear_embed:
                     self.linear3 = linear(in_features=hypersphere_dim, out_features=hypersphere_dim)
                 self.embedding = embedding(num_classes, hypersphere_dim)
-            elif self.conditional_strategy == 'ContraGAN_plus':
-                self.embedding = embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ProjGAN':
                 self.embedding = embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':
@@ -361,21 +357,12 @@ class Discriminator(nn.Module):
                 authen_output = torch.squeeze(self.linear1(h))
                 return authen_output
 
-            elif self.conditional_strategy in ['ContraGAN', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
+            elif self.conditional_strategy in ['ContraGAN', 'ContraGAN_plus', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
                 authen_output = torch.squeeze(self.linear1(h))
                 cls_proxy = self.embedding(label)
                 cls_embed = self.linear2(h)
                 if self.nonlinear_embed:
                     cls_embed = self.linear3(self.activation(cls_embed))
-                if self.normalize_embed:
-                    cls_proxy = F.normalize(cls_proxy, dim=1)
-                    cls_embed = F.normalize(cls_embed, dim=1)
-                return cls_proxy, cls_embed, authen_output
-
-            elif self.conditional_strategy == 'ContraGAN_plus':
-                authen_output = torch.squeeze(self.linear1(h))
-                cls_proxy = self.embedding(label)
-                cls_embed = h
                 if self.normalize_embed:
                     cls_proxy = F.normalize(cls_proxy, dim=1)
                     cls_embed = F.normalize(cls_embed, dim=1)
