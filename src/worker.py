@@ -84,7 +84,7 @@ class make_worker(object):
         self.pos_collected_numerator = cfgs.pos_collected_numerator
         self.z_dim = cfgs.z_dim
         self.num_classes = cfgs.num_classes
-        self.hypersphere_dim = cfgs.hypersphere_dim
+        self.projection_dim = cfgs.projection_dim
         self.d_spectral_norm = cfgs.d_spectral_norm
         self.g_spectral_norm = cfgs.g_spectral_norm
 

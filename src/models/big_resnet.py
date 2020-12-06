@@ -296,7 +296,7 @@ class DiscBlock(nn.Module):
 class Discriminator(nn.Module):
     """Discriminator."""
     def __init__(self, img_size, d_conv_dim, d_spectral_norm, attention, attention_after_nth_dis_block, activation_fn, conditional_strategy,
-                 hypersphere_dim, num_classes, nonlinear_embed, normalize_embed, initialize, D_depth, mixed_precision):
+                 projection_dim, num_classes, nonlinear_embed, normalize_embed, initialize, D_depth, mixed_precision):
         super(Discriminator, self).__init__()
         d_in_dims_collection = {"32": [3] + [d_conv_dim*2, d_conv_dim*2, d_conv_dim*2],
                                 "64": [3] + [d_conv_dim, d_conv_dim*2, d_conv_dim*4, d_conv_dim*8],
@@ -358,10 +358,10 @@ class Discriminator(nn.Module):
         if d_spectral_norm:
             self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
             if self.conditional_strategy in ['ContraGAN', 'ContraGAN_plus', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
-                self.linear2 = snlinear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
+                self.linear2 = snlinear(in_features=self.out_dims[-1], out_features=projection_dim)
                 if self.nonlinear_embed:
-                    self.linear3 = snlinear(in_features=hypersphere_dim, out_features=hypersphere_dim)
-                self.embedding = sn_embedding(num_classes, hypersphere_dim)
+                    self.linear3 = snlinear(in_features=projection_dim, out_features=projection_dim)
+                self.embedding = sn_embedding(num_classes, projection_dim)
             elif self.conditional_strategy == 'ProjGAN':
                 self.embedding = sn_embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':
@@ -371,10 +371,10 @@ class Discriminator(nn.Module):
         else:
             self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
             if self.conditional_strategy in ['ContraGAN', 'ContraGAN_plus', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
-                self.linear2 = linear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
+                self.linear2 = linear(in_features=self.out_dims[-1], out_features=projection_dim)
                 if self.nonlinear_embed:
-                    self.linear3 = linear(in_features=hypersphere_dim, out_features=hypersphere_dim)
-                self.embedding = embedding(num_classes, hypersphere_dim)
+                    self.linear3 = linear(in_features=projection_dim, out_features=projection_dim)
+                self.embedding = embedding(num_classes, projection_dim)
             elif self.conditional_strategy == 'ProjGAN':
                 self.embedding = embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':

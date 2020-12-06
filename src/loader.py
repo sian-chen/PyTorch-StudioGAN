@@ -80,7 +80,7 @@ def prepare_train_eval(rank, world_size, run_name, train_config, model_config, h
                            cfgs.g_init, cfgs.G_depth, cfgs.mixed_precision).to(rank)
 
     Dis = module.Discriminator(cfgs.img_size, cfgs.d_conv_dim, cfgs.d_spectral_norm, cfgs.attention, cfgs.attention_after_nth_dis_block,
-                               cfgs.activation_fn, cfgs.conditional_strategy, cfgs.hypersphere_dim, cfgs.num_classes, cfgs.nonlinear_embed,
+                               cfgs.activation_fn, cfgs.conditional_strategy, cfgs.projection_dim, cfgs.num_classes, cfgs.nonlinear_embed,
                                cfgs.normalize_embed, cfgs.d_init, cfgs.D_depth, cfgs.mixed_precision).to(rank)
 
     if cfgs.ema:

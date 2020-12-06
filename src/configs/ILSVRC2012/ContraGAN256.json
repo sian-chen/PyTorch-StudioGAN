@@ -15,7 +15,7 @@
         "architecture": "big_resnet",
         "conditional_strategy": "ContraGAN",
         "pos_collected_numerator": true,
-        "hypersphere_dim": 1024,
+        "projection_dim": 1024,
         "nonlinear_embed": false,
         "normalize_embed": true,
         "g_spectral_norm": true,
