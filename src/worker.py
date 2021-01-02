@@ -23,7 +23,7 @@ from utils.biggan_utils import interp
 from utils.sample import sample_latents, sample_1hot, make_mask, target_class_sampler
 from utils.misc import *
 from utils.losses import calc_derv4gp, calc_derv4dra, calc_derv, latent_optimise, set_temperature
-from utils.losses import Conditional_Contrastive_loss, Proxy_NCA_loss, NT_Xent_loss
+from utils.losses import Conditional_Contrastive_loss, Proxy_NCA_loss, NT_Xent_loss, SupConLoss
 from utils.diff_aug import DiffAugment
 from utils.cr_diff_aug import CR_DiffAug
 
@@ -156,13 +156,12 @@ class make_worker(object):
         self.counter = 0
 
         self.sampler = define_sampler(self.dataset_name, self.conditional_strategy)
-
         if self.distributed_data_parallel: self.group = dist.new_group([n for n in range(self.n_gpus)])
 
         check_flag_1(self.tempering_type, self.pos_collected_numerator, self.conditional_strategy, self.diff_aug, self.ada,
                      self.mixed_precision, self.gradient_penalty_for_dis, self.deep_regret_analysis_for_dis, self.cr, self.bcr,
                      self.zcr, self.distributed_data_parallel, self.synchronized_bn)
-
+        self.supconloss = SupConLoss()
         if self.conditional_strategy == 'ContraGAN':
             self.contrastive_criterion = Conditional_Contrastive_loss(self.rank, self.batch_size, self.pos_collected_numerator)
         elif self.conditional_strategy == 'Proxy_NCA_GAN':
@@ -259,7 +258,7 @@ class make_worker(object):
                             dis_out_fake = self.dis_model(fake_images, fake_labels)
                         elif self.conditional_strategy in ["NT_Xent_GAN", "Proxy_NCA_GAN", "ContraGAN"]:
                             cls_proxies_real, cls_embed_real, dis_out_real = self.dis_model(real_images, real_labels)
-                            cls_proxies_fake, cls_embed_fake, dis_out_fake = self.dis_model(fake_images, fake_labels)
+                            cls_proxies_fake, cls_embed_fake, dis_out_fake = self.dis_model(fake_images, fake_labels, fake=True)
                         else:
                             raise NotImplementedError
 
@@ -273,9 +272,14 @@ class make_worker(object):
                         elif self.conditional_strategy == "Proxy_NCA_GAN":
                             dis_acml_loss += self.contrastive_lambda*self.NCA_criterion(cls_embed_real, cls_proxies_real, real_labels)
                         elif self.conditional_strategy == "ContraGAN":
+                            # cls_embed_real = torch.unsqueeze(cls_embed_real,dim=1)
+                            # self.supconloss(torch.cat([cls_embed_real,cls_embed_real],dim=1))
                             real_cls_mask = make_mask(real_labels, self.num_classes, self.rank)
+                            fake_cls_mask = make_mask(fake_labels, self.num_classes, self.rank)
                             dis_acml_loss += self.contrastive_lambda*self.contrastive_criterion(cls_embed_real, cls_proxies_real,
                                                                                                 real_cls_mask, real_labels, t, self.margin)
+                            dis_acml_loss += self.contrastive_lambda*self.contrastive_criterion(cls_embed_fake, cls_proxies_fake,
+                                                                                                fake_cls_mask, fake_labels, t, self.margin)
                         else:
                             pass
 
