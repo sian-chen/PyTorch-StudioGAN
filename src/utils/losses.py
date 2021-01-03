@@ -75,7 +75,7 @@ def latent_optimise(zs, fake_labels, gen_model, dis_model, conditional_strategy,
 
 
 def set_temperature(conditional_strategy, tempering_type, start_temperature, end_temperature, step_count, tempering_step, total_step):
-    if conditional_strategy == 'ContraGAN':
+    if conditional_strategy in ['ContraGAN', 'ContraGAN_plus']:
         if tempering_type == 'continuous':
             t = start_temperature + step_count*(end_temperature - start_temperature)/total_step
         elif tempering_type == 'discrete':
@@ -153,7 +153,7 @@ class Conditional_Contrastive_loss(torch.nn.Module):
 
 class Conditional_Contrastive_loss_plus(torch.nn.Module):
     def __init__(self, device, batch_size):
-        super(Conditional_Contrastive_loss, self).__init__()
+        super(Conditional_Contrastive_loss_plus, self).__init__()
         self.device = device
         self.batch_size = batch_size
         self.calculate_similarity_matrix = self._calculate_similarity_matrix()
@@ -179,7 +179,7 @@ class Conditional_Contrastive_loss_plus(torch.nn.Module):
         return v
 
 
-    def forward(self, inst_embed, proxy, negative_mask, labels, temperature, margin):
+    def forward(self, inst_embed, proxy, negative_mask, labels, temperature):
         sim_mat = self.calculate_similarity_matrix(inst_embed, inst_embed)/temperature
         i2p_pos = self.cosine_similarity(inst_embed, proxy)/temperature
         ip_mat = torch.cat([sim_mat, i2p_pos.unsqueeze(dim=1)], dim=1)

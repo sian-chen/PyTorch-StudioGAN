@@ -158,7 +158,8 @@ def check_flag_1(tempering_type, pos_collected_numerator, conditional_strategy, 
             "Tempering_type should be one of constant, continuous, or discrete."
 
     if pos_collected_numerator:
-        assert conditional_strategy == "ContraGAN", "Pos_collected_numerator option is not appliable except for ContraGAN."
+        assert conditional_strategy == "ContraGAN" or conditional_strategy == "ContraGAN_plus" ,\
+            "Pos_collected_numerator option is not appliable except for ContraGAN."
 
     if distributed_data_parallel:
         msg = 'Evaluation results of the image generation with DDP are not exact. ' + \
