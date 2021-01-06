@@ -849,3 +849,6 @@ class make_worker(object):
             generator = change_generator_mode(self.gen_model, self.Gen_copy, standing_statistics, standing_step, self.prior,
                                               self.batch_size, self.z_dim, self.num_classes, self.rank, training=True, counter=self.counter)
     ################################################################################################################################
+    """
+    def run_tsne_analysis(self, num_images, standing_statistics, standing_step):
+    """
