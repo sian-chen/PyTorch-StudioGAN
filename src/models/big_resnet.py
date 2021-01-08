@@ -316,6 +316,7 @@ class Discriminator(nn.Module):
                   "256": [True, True, True, True, True, True, False],
                   "512": [True, True, True, True, True, True, True, False]}
 
+
         self.nonlinear_embed = nonlinear_embed
         self.normalize_embed = normalize_embed
         self.conditional_strategy = conditional_strategy
@@ -356,28 +357,35 @@ class Discriminator(nn.Module):
             raise NotImplementedError
 
         if d_spectral_norm:
-            self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
             if self.conditional_strategy in ['ContraGAN', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
+                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
                 self.linear2 = snlinear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
                 if self.nonlinear_embed:
                     self.linear3 = snlinear(in_features=hypersphere_dim, out_features=hypersphere_dim)
                 self.embedding = sn_embedding(num_classes, hypersphere_dim)
+            elif self.conditional_strategy == "ContraGAN_plus":
+                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=128)
+                self.embedding = sn_embedding(num_classes, 128)
             elif self.conditional_strategy == 'ProjGAN':
+                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
                 self.embedding = sn_embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':
+                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
                 self.linear4 = snlinear(in_features=self.out_dims[-1], out_features=num_classes)
             else:
                 pass
         else:
-            self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
             if self.conditional_strategy in ['ContraGAN', 'Proxy_NCA_GAN', 'NT_Xent_GAN']:
+                self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
                 self.linear2 = linear(in_features=self.out_dims[-1], out_features=hypersphere_dim)
                 if self.nonlinear_embed:
                     self.linear3 = linear(in_features=hypersphere_dim, out_features=hypersphere_dim)
                 self.embedding = embedding(num_classes, hypersphere_dim)
             elif self.conditional_strategy == 'ProjGAN':
+                self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
                 self.embedding = embedding(num_classes, self.out_dims[-1])
             elif self.conditional_strategy == 'ACGAN':
+                self.linear1 = linear(in_features=self.out_dims[-1], out_features=1)
                 self.linear4 = linear(in_features=self.out_dims[-1], out_features=num_classes)
             else:
                 pass
@@ -410,6 +418,15 @@ class Discriminator(nn.Module):
                     cls_proxy = F.normalize(cls_proxy, dim=1)
                     cls_embed = F.normalize(cls_embed, dim=1)
                 return cls_proxy, cls_embed, authen_output
+
+            elif self.conditional_strategy == 'ContraGAN_plus':
+                embed = self.linear1(h)
+                real_cls_proxy = self.embedding(label)
+                authen_output = torch.sum(torch.mul(real_cls_proxy, embed), 1)
+                if self.normalize_embed:
+                    real_cls_proxy = F.normalize(real_cls_proxy, dim=1)
+                    embed = F.normalize(embed, dim=1)
+                return real_cls_proxy, embed, authen_output
 
             elif self.conditional_strategy == 'ProjGAN':
                 authen_output = torch.squeeze(self.linear1(h))
