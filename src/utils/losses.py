@@ -180,21 +180,6 @@ class Conditional_Contrastive_loss_plus(torch.nn.Module):
 
 
     def forward(self, inst_embed, proxy, negative_mask, labels, temperature, margin_p, margin_n):
-        margin = 0
-        similarity_matrix = self.calculate_similarity_matrix(inst_embed, inst_embed)
-        instance_zone = torch.exp((self.remove_diag(similarity_matrix) - margin)/temperature)
-
-        inst2proxy_positive = torch.exp((self.cosine_similarity(inst_embed, proxy) - margin)/temperature)
-        mask_4_remove_negatives = negative_mask[labels]
-        mask_4_remove_negatives = self.remove_diag(mask_4_remove_negatives)
-        inst2inst_positives = instance_zone*mask_4_remove_negatives
-
-        numerator = inst2proxy_positive + inst2inst_positives.sum(dim=1)
-
-        denomerator = torch.cat([torch.unsqueeze(inst2proxy_positive, dim=1), instance_zone], dim=1).sum(dim=1)
-        criterion = -torch.log(temperature*(numerator/denomerator)).mean()
-        return criterion
-
         """
         sim_mat = self.calculate_similarity_matrix(inst_embed, inst_embed)/temperature
         i2p_pos = self.cosine_similarity(inst_embed, proxy)/temperature
@@ -211,7 +196,6 @@ class Conditional_Contrastive_loss_plus(torch.nn.Module):
         log_prob_pos = ((log_prob*mask_4_rmv_neg).sum(1))/(mask_4_rmv_neg.sum(1))
         criterion = -log_prob_pos.mean()
         return criterion
-        """
         """
         sim_mat = self.calculate_similarity_matrix(inst_embed, inst_embed)
         i2p_pos = self.cosine_similarity(inst_embed, proxy)
@@ -238,7 +222,7 @@ class Conditional_Contrastive_loss_plus(torch.nn.Module):
 
         loss = pos_loss + neg_loss
         return loss.mean()
-        """
+
 
 class Proxy_NCA_loss(torch.nn.Module):
     def __init__(self, device, embedding_layer, num_classes, batch_size):

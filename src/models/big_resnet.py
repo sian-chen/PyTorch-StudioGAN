@@ -364,8 +364,11 @@ class Discriminator(nn.Module):
                     self.linear3 = snlinear(in_features=hypersphere_dim, out_features=hypersphere_dim)
                 self.embedding = sn_embedding(num_classes, hypersphere_dim)
             elif self.conditional_strategy == "ContraGAN_plus":
-                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=128)
-                self.embedding = sn_embedding(num_classes, 128)
+                self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=self.out_dims[-1]*4)
+                self.linear2 = snlinear(in_features=self.out_dims[-1]*4, out_features=1)
+                self.linear3 = snlinear(in_features=self.out_dims[-1], out_features=self.out_dims[-1]*4)
+                self.linear4 = snlinear(in_features=self.out_dims[-1]*4, out_features=hypersphere_dim)
+                self.embedding = sn_embedding(num_classes, hypersphere_dim)
             elif self.conditional_strategy == 'ProjGAN':
                 self.linear1 = snlinear(in_features=self.out_dims[-1], out_features=1)
                 self.embedding = sn_embedding(num_classes, self.out_dims[-1])
@@ -420,13 +423,13 @@ class Discriminator(nn.Module):
                 return cls_proxy, cls_embed, authen_output
 
             elif self.conditional_strategy == 'ContraGAN_plus':
-                embed = self.linear1(h)
-                real_cls_proxy = self.embedding(label)
-                authen_output = torch.sum(torch.mul(real_cls_proxy, embed), 1)
+                authen_output = torch.squeeze(self.linear2(self.activation(self.linear1(h))))
+                cls_proxy = self.embedding(label)
+                cls_embed = self.linear4(self.activation(self.linear3(h)))
                 if self.normalize_embed:
-                    real_cls_proxy = F.normalize(real_cls_proxy, dim=1)
-                    embed = F.normalize(embed, dim=1)
-                return real_cls_proxy, embed, authen_output
+                    cls_proxy = F.normalize(cls_proxy, dim=1)
+                    cls_embed = F.normalize(cls_embed, dim=1)
+                return cls_proxy, cls_embed, authen_output
 
             elif self.conditional_strategy == 'ProjGAN':
                 authen_output = torch.squeeze(self.linear1(h))

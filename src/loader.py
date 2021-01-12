@@ -29,7 +29,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 
-def prepare_train_eval(rank, world_size, run_name, train_config, model_config, hdf5_path_train):
+def load_process(rank, world_size, run_name, train_config, model_config, hdf5_path_train):
     cfgs = dict2clsattr(train_config, model_config)
     prev_ada_p, step, best_step, best_fid, best_fid_checkpoint_path, mu, sigma, inception_model = None, 0, 0, None, None, None, None, None
     if cfgs.distributed_data_parallel:
@@ -145,7 +145,7 @@ def prepare_train_eval(rank, world_size, run_name, train_config, model_config, h
             prev_ada_p, step, best_step, best_fid, best_fid_checkpoint_path = None, 0, 0, None, None
 
 
-    ##### wrap models with DP and convert BN to Sync BN #####
+    ##### wrap models with DP/DDP and convert BN to Sync BN #####
     if world_size > 1:
         if cfgs.distributed_data_parallel:
             if cfgs.synchronized_bn:

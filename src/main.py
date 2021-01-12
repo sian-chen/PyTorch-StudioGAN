@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 from utils.misc import *
 from utils.make_hdf5 import make_hdf5
 from utils.log import make_run_name
-from loader import prepare_train_eval
+from loader import load_process
 
 import torch
 from torch.backends import cudnn
@@ -115,9 +115,9 @@ def main():
 
     if train_config['distributed_data_parallel'] and world_size > 1:
         print("Train the models through DistributedDataParallel (DDP) mode.")
-        mp.spawn(prepare_train_eval, nprocs=world_size, args=(world_size, run_name, train_config, model_config, hdf5_path_train))
+        mp.spawn(load_process, nprocs=world_size, args=(world_size, run_name, train_config, model_config, hdf5_path_train))
     else:
-        prepare_train_eval(rank, world_size, run_name, train_config, model_config, hdf5_path_train=hdf5_path_train)
+        load_process(rank, world_size, run_name, train_config, model_config, hdf5_path_train=hdf5_path_train)
 
 if __name__ == '__main__':
     main()
