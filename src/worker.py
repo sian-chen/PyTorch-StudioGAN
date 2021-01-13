@@ -12,7 +12,8 @@ from scipy import ndimage
 from sklearn.manifold import TSNE
 from os.path import join
 from PIL import Image
-from tqdm import tqdm
+from tqdm import tqdm, trange
+from time import sleep
 from datetime import datetime
 
 from metrics.IS import calculate_incep_score
@@ -54,8 +55,8 @@ LOG_FORMAT = (
 
 class make_worker(object):
     def __init__(self, cfgs, run_name, best_step, logger, writer, n_gpus, gen_model, dis_model, inception_model, Gen_copy,
-                 Gen_ema, train_dataset, eval_dataset, train_dataloader, eval_dataloader, G_optimizer, D_optimizer, G_loss,
-                 D_loss, prev_ada_p, rank, checkpoint_dir, mu, sigma, best_fid, best_fid_checkpoint_path):
+                 Gen_ema, train_dataset, eval_dataset, train_dataloader, eval_dataloader, G_optimizer,
+                 D_optimizer, G_loss, D_loss, prev_ada_p, rank, checkpoint_dir, mu, sigma, best_fid, best_fid_checkpoint_path):
 
         self.cfgs = cfgs
         self.run_name = run_name
@@ -205,7 +206,41 @@ class make_worker(object):
         if self.Gen_copy is not None:
             self.Gen_copy.train()
 
-        if self.rank == 0: self.logger.info('Start training....')
+        if self.conditional_strategy == "ContraGAN_plus":
+            if self.rank == 0: self.logger.info('Start Contrastive Pretraining....')
+            train_iter = iter(self.train_dataloader)
+            toggle_grad(self.dis_model, on=True, freeze_layers=self.freeze_layers)
+            toggle_grad(self.gen_model, on=False, freeze_layers=-1)
+            for step_index in tqdm(range(10000)):
+                self.D_optimizer.zero_grad()
+                for acml_index in range(self.accumulation_steps):
+                    # ================== TRAIN Contra_D ==================#
+                    try:
+                        real_images, real_labels = next(train_iter)
+                    except StopIteration:
+                        train_iter = iter(self.train_dataloader)
+                        real_images, real_labels = next(train_iter)
+
+                    real_images, real_labels = real_images.to(self.rank), real_labels.to(self.rank)
+                    with torch.cuda.amp.autocast() if self.mixed_precision else dummy_context_mgr() as mpc:
+                        cls_proxies_real, cls_embed_real, dis_out_real = self.dis_model(real_images, real_labels)
+                        real_cls_mask = make_mask(real_labels, self.num_classes, self.rank)
+                        dis_acml_loss = self.contrastive_lambda*self.contrastive_criterion_plus(cls_embed_real, cls_proxies_real, real_cls_mask,
+                                                                                                real_labels, 0.08, "N/A", "N/A")
+                    if self.mixed_precision:
+                        self.scaler.scale(dis_acml_loss).backward()
+                    else:
+                        dis_acml_loss.backward()
+
+                if self.mixed_precision:
+                    self.scaler.step(self.D_optimizer)
+                    self.scaler.update()
+                else:
+                    self.D_optimizer.step()
+
+
+        # ================== TRAIN GANs ================== #
+        if self.rank == 0: self.logger.info('Start GANs training....')
         step_count = current_step
         train_iter = iter(self.train_dataloader)
 
@@ -287,9 +322,9 @@ class make_worker(object):
                             real_cls_mask = make_mask(real_labels, self.num_classes, self.rank)
                             fake_cls_mask = make_mask(fake_labels, self.num_classes, self.rank)
                             dis_acml_loss += self.contrastive_lambda*self.contrastive_criterion_plus(cls_embed_real, cls_proxies_real, real_cls_mask,
-                                                                                                    real_labels, t, 0.9, 0.0)
+                                                                                                    real_labels, t, "N/A", "N/A")
                             dis_acml_loss += self.contrastive_lambda*self.contrastive_criterion_plus(cls_embed_fake, -cls_proxies_fake, fake_cls_mask,
-                                                                                                     fake_labels, t, 0.9, 0.0)
+                                                                                                     fake_labels, t, "N/A", "N/A")
                         else:
                             pass
 
@@ -445,7 +480,7 @@ class make_worker(object):
                         elif self.conditional_strategy == "ContraGAN_plus":
                             fake_cls_mask = make_mask(fake_labels, self.num_classes, self.rank)
                             gen_acml_loss += self.contrastive_lambda*self.contrastive_criterion_plus(cls_embed_fake, cls_proxies_fake, fake_cls_mask,
-                                                                                                    fake_labels, t, 0.9, 0.0)
+                                                                                                    fake_labels, t, "N/A", "N/A")
                         elif self.conditional_strategy == "Proxy_NCA_GAN":
                             gen_acml_loss += self.contrastive_lambda*self.NCA_criterion(cls_embed_fake, cls_proxies_fake, fake_labels)
                         elif self.conditional_strategy == "NT_Xent_GAN":

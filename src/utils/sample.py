@@ -94,10 +94,10 @@ def sample_1hot(batch_size, num_classes, device='cuda'):
 def make_mask(labels, n_cls, device):
     labels = labels.detach().cpu().numpy()
     n_samples = labels.shape[0]
-    mask_multi = np.zeros([n_cls, n_samples])
+    mask_multi = np.ones([n_cls, n_samples])
     for c in range(n_cls):
         c_indices = np.where(labels==c)
-        mask_multi[c, c_indices] =+1
+        mask_multi[c, c_indices] = -1e9
 
     mask_multi = torch.tensor(mask_multi).type(torch.long)
     return mask_multi.to(device)
